@@ -1,4 +1,10 @@
 import streamlit as st
+import json
+import pickle
+import joblib
+from pathlib import Path
+
+import pandas as pd
 
 st.set_page_config(
     page_title="Amazon Reviews Dashboard",
@@ -7,27 +13,53 @@ st.set_page_config(
 )
 
 # ==========================================================
+# Paths
+# ==========================================================
+
+DATA_PATH = Path("data")
+
+PACK_PATH = DATA_PATH / "evidence_pack.json"
+ARTICLES_PATH = DATA_PATH / "articles.json"
+REVIEWS_PATH = DATA_PATH / "reviews_slim.parquet"
+MODEL_PATH = DATA_PATH / "svm_pipeline.pkl"
+
+
+
+# ==========================================================
 # Cached Loaders
 # ==========================================================
 
 @st.cache_data
 def load_pack():
-    return None
+    """Load evidence pack."""
+
+    with open(PACK_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 @st.cache_data
 def load_articles():
-    return None
+    """Load category summary articles."""
+
+    if not ARTICLES_PATH.exists():
+        return {}
+
+    with open(ARTICLES_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 @st.cache_data
 def load_reviews():
-    return None
+    """Load review dataset."""
+
+    return pd.read_parquet(REVIEWS_PATH)
 
 
 @st.cache_resource
 def load_model():
-    return None
+    """Load sentiment classification model."""
+
+    return joblib.load(MODEL_PATH)
 
 
 # ==========================================================
@@ -51,12 +83,6 @@ def render_personas(pack, reviews):
 # ==========================================================
 
 def main():
-
-    st.set_page_config(
-        page_title="Amazon Reviews Dashboard",
-        page_icon="⭐",
-        layout="wide",
-    )
 
     st.title("Amazon Reviews Dashboard")
 
