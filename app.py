@@ -10,7 +10,85 @@ st.set_page_config(
     page_icon="⭐",
     layout="wide",
 )
-
+st.markdown("""
+<style>
+/* Recessed "well" so users can see where to type */
+.stTextArea textarea,
+.stTextInput input {
+    background: #e0e5ec;
+    border: none;
+    border-radius: 12px;
+    box-shadow: inset 4px 4px 8px #a3b1c6,
+                inset -4px -4px 8px #ffffff;
+    color: #31456a;
+    padding: 12px 14px;
+}
+.stButton > button {
+    background: #e0e5ec;
+    border: none;
+    border-radius: 12px;
+    color: #31456a;
+    padding: 10px 22px;
+    box-shadow: 6px 6px 12px #a3b1c6, -6px -6px 12px #ffffff;
+    transition: all 0.15s ease;
+}
+.stButton > button:hover {
+    color: #6d5dfc;
+}
+.stButton > button:active {
+    box-shadow: inset 4px 4px 8px #a3b1c6, inset -4px -4px 8px #ffffff;
+}
+[data-testid="stMetric"],
+[data-testid="metric-container"] {
+    background: #e0e5ec;
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: 6px 6px 12px #a3b1c6, -6px -6px 12px #ffffff;
+}
+.stSelectbox div[data-baseweb="select"] > div {
+    background: #e0e5ec;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 4px 4px 8px #a3b1c6, -4px -4px 8px #ffffff;
+    color: #31456a;
+}
+.review-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.hovercard { position: relative; display: inline-block; }
+.hovercard .trigger {
+    display: inline-block; max-width: 220px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    background: #e0e5ec; border-radius: 10px; padding: 8px 12px;
+    font-size: 13px; color: #31456a; cursor: pointer;
+    box-shadow: 4px 4px 8px #a3b1c6, -4px -4px 8px #ffffff;
+}
+.hovercard .card {
+    visibility: hidden; opacity: 0; transition: opacity 0.15s ease;
+    position: absolute; bottom: 125%; left: 0; width: 300px; z-index: 1000;
+    background: #e0e5ec; border-radius: 14px; padding: 14px 16px;
+    box-shadow: 6px 6px 14px #a3b1c6, -6px -6px 14px #ffffff;
+    color: #31456a; font-size: 14px; line-height: 1.5;
+}
+.hovercard:hover .card { visibility: visible; opacity: 1; }
+.hovercard .stars { color: #6d5dfc; font-weight: 500; }
+[data-baseweb="tab-list"] {
+    gap: 12px;
+    background: transparent;
+    border-bottom: none;
+}
+[data-baseweb="tab"] {
+    background: #e0e5ec;
+    border-radius: 12px;
+    padding: 8px 16px !important;
+    box-shadow: 5px 5px 10px #a3b1c6, -5px -5px 10px #ffffff;
+    color: #31456a;
+}
+[data-baseweb="tab"][aria-selected="true"] {
+    box-shadow: inset 4px 4px 8px #a3b1c6, inset -4px -4px 8px #ffffff;
+    color: #6d5dfc;
+}
+[data-baseweb="tab-highlight"], [data-baseweb="tab-border"] { display: none; }
+</style>
+""", unsafe_allow_html=True)
 # ==========================================================
 # Paths
 # ==========================================================
@@ -115,11 +193,40 @@ def render_summaries(pack, articles):
     st.subheader("Category Summary")
 
     st.markdown(articles[selected_category])
+    st.markdown(articles[selected_category])
+
+    # ADD THIS — reviews from this category's products, as hover cards
+    all_quotes = []
+    for prod in cluster["products"]:
+        all_quotes.extend(prod.get("quotes_positive", []))
+        all_quotes.extend(prod.get("quotes_negative", []))
+    cards = review_hovercards(all_quotes[:12])
+    if cards:
+        st.markdown("### More reviews")
+        st.caption("Hover any snippet to read the full review.")
+        st.markdown(cards, unsafe_allow_html=True)
 
 # ==========================================================
 # Helper Functions
 # ==========================================================
+import html
 
+def review_hovercards(quotes):
+    """Build hover-card HTML from a product's curated quotes."""
+    if not quotes:
+        return ""
+    items = []
+    for q in quotes:
+        full = html.escape(q["text"])
+        teaser = html.escape(q["text"][:38].rstrip() + "…")
+        stars = "★" * int(round(q["rating"]))
+        items.append(
+            f'<span class="hovercard">'
+            f'<span class="trigger">{teaser}</span>'
+            f'<span class="card"><span class="stars">{stars}</span><br>{full}</span>'
+            f'</span>'
+        )
+    return '<div class="review-row">' + "".join(items) + "</div>"
 def explain_prediction(model, review, prediction):
     """Return the most influential words for a prediction."""
 
@@ -226,6 +333,18 @@ def render_personas(pack, reviews):
         q = quotes[0]
         st.markdown(f"> {q['text']}")
         st.caption(f"— genuine {int(q['rating'])}★ review")
+            # a real quote
+    quotes = prod.get("quotes_positive", [])
+    if quotes:
+        q = quotes[0]
+        st.markdown(f"> {q['text']}")
+        st.caption(f"— genuine {int(q['rating'])}★ review")
+
+        # ADD THIS — hover cards for the remaining reviews
+        cards = review_hovercards(quotes[1:])
+        if cards:
+            st.markdown("**More from reviewers** — hover to read:")
+            st.markdown(cards, unsafe_allow_html=True)
 
 
 # ==========================================================
