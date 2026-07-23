@@ -1,6 +1,5 @@
 import streamlit as st
 import json
-import pickle
 import joblib
 from pathlib import Path
 
@@ -117,9 +116,88 @@ def render_summaries(pack, articles):
 
     st.markdown(articles[selected_category])
 
+# ==========================================================
+# Helper Functions
+# ==========================================================
+
+def explain_prediction(model, review, prediction):
+    """Return the most influential words for a prediction."""
+
+    vectorizer = model.named_steps["tfidf"]
+    classifier = model.named_steps["clf"]
+
+    review_vector = vectorizer.transform([review])
+
+    feature_names = vectorizer.get_feature_names_out()
+
+    # Find the row of the predicted class
+    class_index = list(classifier.classes_).index(prediction)
+
+    coefficients = classifier.coef_[class_index]
+
+    present_indices = review_vector.nonzero()[1]
+
+    contributions = []
+
+    for i in present_indices:
+
+        tfidf = review_vector[0, i]
+        coef = coefficients[i]
+
+        score = tfidf * coef
+
+        contributions.append(
+            (
+                feature_names[i],
+                score
+            )
+        )
+
+    contributions.sort(
+        key=lambda x: abs(x[1]),
+        reverse=True
+    )
+
+    return contributions[:10]
 
 def render_sentiment(model):
-    st.info("🚧 Sentiment Explorer - Coming soon")
+
+    st.subheader("Sentiment Explorer")
+
+    review = st.text_area(
+        "Paste a customer review",
+        height=180
+    )
+
+    if st.button("Analyze Review"):
+
+        if review.strip() == "":
+            st.warning("Please enter a review.")
+            return
+
+        prediction = model.predict([review])[0]
+
+        important_words = explain_prediction(model, review, prediction)
+
+        # Show prediction ONCE
+        if prediction == "Positive":
+            st.success("🟢 Predicted Sentiment: Positive")
+
+        elif prediction == "Neutral":
+            st.warning("🟡 Predicted Sentiment: Neutral")
+
+        else:
+            st.error("🔴 Predicted Sentiment: Negative")
+
+        st.subheader("Top Words Driving the Prediction")
+
+        for word, score in important_words:
+            st.write(
+                f"• **{word}**  \n"
+                f"<span style='color:gray;'>Importance: {abs(score):.2f}</span>",
+                unsafe_allow_html=True,
+            )
+
 
 
 def render_personas(pack, reviews):
