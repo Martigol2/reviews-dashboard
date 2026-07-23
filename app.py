@@ -67,7 +67,33 @@ def load_model():
 # ==========================================================
 
 def render_summaries(pack, articles):
-    st.info("🚧 Category Summaries - Coming soon")
+
+    clusters = pack["clusters"]
+
+    category_names = [c["cluster_name"] for c in clusters]
+
+    selected_category = st.selectbox(
+        "Select Product Category",
+        category_names
+    )
+
+    cluster = next(
+        c for c in clusters
+        if c["cluster_name"] == selected_category
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("Reviews", cluster["n_reviews"])
+    col2.metric("Average Rating", f'{cluster["mean_rating"]:.2f}')
+    col3.metric("Positive %", f'{cluster["pct_positive"]:.1f}%')
+    col4.metric("Negative %", f'{cluster["pct_negative"]:.1f}%')
+
+    st.divider()
+
+    st.subheader("Category Summary")
+
+    st.markdown(articles[selected_category])
 
 
 def render_sentiment(model):
